@@ -2,12 +2,16 @@
 Require Import Coq.Reals.Reals.
 Require Import Coquelicot.Coquelicot. (* real/complex analysis lib *)
 
+(* Require basic algebraic structures *)
+Require Import Coq.Vectors.Fin.
+Require Import Coq.Arith.Arith.
+Require Import Coq.Reals.Reals.
+Require Import Coq.micromega.Lra.
+
 Open Scope R_scope.
 
 (* Example: a simple real function *)
 Definition f (x : R) : R := x^2.
-
-About is_derive. (* is_derivative(f x f') *)
 
 (* Proving the derivative of f is 2*x *)
 Lemma derivative_f : forall x, is_derive f x (2 * x).
@@ -19,25 +23,11 @@ Proof.
 
 Qed.
 
+About is_derive. (* is_derivative(f x f') *)
 About continuity. (* continuity(f) *)
 
-(* Proving the continuity of f *) 
-Lemma my_function_continuous : continuity f. 
-Proof.
-  intros.
-
-  unfold f.
-  unfold continuity.
-  unfold pow_fct.
-  Admitted. (* This is oddly tedious. Moving on. *)
 
 
-
-(* Require basic algebraic structures *)
-Require Import Coq.Vectors.Fin.
-Require Import Coq.Arith.Arith.
-Require Import Coq.Reals.Reals.
-Require Import Coq.micromega.Lra.
 
 (* Axiomatic field definition *)
 Class Field (F : Type) := {
@@ -57,6 +47,8 @@ Class Field (F : Type) := {
   Fadd_opp : forall x : F, Fadd x (Fopp x) = Fzero;
   Finv_l : forall x : F, x <> Fzero -> Fmul (Finv x) x = Fone
 }.
+
+
 
 (* Define a vector space over a field *)
 Class VectorSpace (V : Type) (F : Type) {F_field : Field F} := {
@@ -78,6 +70,14 @@ Class VectorSpace (V : Type) (F : Type) {F_field : Field F} := {
     smul (Fmul a b) v = smul a (smul b v);
   smul_1_l : forall v : V, smul Fone v = v
 }.
+
+Class LinearOperator (V : Type) (F : Type) {F_field : Field F} {V_space : VectorSpace V F} := {
+  op : V -> V;
+  linearity : forall a : F, forall u v : V,
+    op (vadd u v) = vadd (op u) (op v) /\
+    op (smul a u) = smul a (op u)
+}.
+
 
 (* Define the real numbers as a field *)
 Instance R_Field : Field R := {
@@ -102,7 +102,7 @@ Instance R_Field : Field R := {
   Fadd_opp := Rplus_opp_r;
   Finv_l := Rinv_l
 }.
-
+(* (* optional *)
 (* The set of functions from R to R forms an infinite-dimensional vector space *)
 Instance FunctionSpace_VectorSpace : VectorSpace (R -> R) R := {
   vzero := (fun _ => 0);
@@ -119,10 +119,56 @@ Instance FunctionSpace_VectorSpace : VectorSpace (R -> R) R := {
   smul_assoc := fun a b v => functional_extensionality_dep _ _ (fun x => Rmult_assoc a b (v x));
   smul_1_l := fun v => functional_extensionality_dep _ _ (fun x => Rmult_1_l (v x))
 }.
+*)
+
+(* The set of functions from R to R forms an infinite-dimensional vector space *) 
 
 
+(* Required Imports *)
+Require Import Reals.
+Require Import FunctionalExtensionality.
+Require Import List.
+Require Import Coquelicot.Coquelicot. (* For more advanced calculus and topology *)
 
+(* Defining the domains as subsets of R^d and R^d' *)
+Variable d d' : nat. (* dimensions of input and output domains *)
+Variable D : Type.    (* bounded domain D in R^d *)
+Variable D' : Type.   (* bounded domain D' in R^d' *)
 
+(* Defining the input and output function types *)
+Definition A := D -> R^d.   (* Input functions, taking values in R^da *)
+Definition U := D' -> R^d'. (* Output functions, taking values in R^du *)
+
+(* Parameterizing the architecture by a set of parameters theta *)
+Variable theta : Type.
+
+(* Definition of the neural operator architecture G_theta : A -> U *)
+Record NeuralOperator := {
+  (* Lifting step *)
+  Lifting : (D -> R^d) -> (D -> R^d) ; (* Lifting operation from input space to hidden representation *)
+  
+  (* Iterative kernel integration step *)
+  KernelIntegration : forall t : nat, (D -> R^d) -> (D -> R^d); (* Mapping each hidden representation iteratively *)
+  
+  (* Non-linearity function *)
+  Nonlinearity : R -> R;
+  
+  (* Projection step *)
+  Projection : (D' -> R^d) -> (D' -> R^d');
+  
+  (* Complete architecture *)
+  G_theta : A -> U := fun a =>
+    let v0 := Lifting a in
+    let vT := (* Iterative kernel application *)
+              fix iterate (t : nat) (v : D -> R^d) :=
+                match t with
+                | 0 => v
+                | S t' => let vt := KernelIntegration t' v in
+                          fun x => Nonlinearity (vt x) (* Applying nonlinearity pointwise *)
+                end
+              in iterate d v0 in
+    Projection vT
+}.
 
 
 
