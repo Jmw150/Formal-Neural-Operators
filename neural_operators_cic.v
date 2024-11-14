@@ -2,6 +2,20 @@
 Require Import Coq.Reals.Reals.
 Require Import Coquelicot.Coquelicot. (* real/complex analysis lib *)
 
+(* This is all that is needed to make an integral operator *)
+Definition integral_operator 
+  (K : R -> R -> R) (f : R -> R) (x a b : R) : R :=
+    RInt (fun y => K x y * f y) a b.
+
+(* example convolution *)
+Variable k : R -> R.
+Definition convolution_kernel (x y : R) : R := k (x - y).
+
+Definition convolution_operator (f : R -> R) (x a b : R) : R :=
+  integral_operator convolution_kernel f x a b.
+
+
+
 (* Require basic algebraic structures *)
 Require Import Coq.Vectors.Fin.
 Require Import Coq.Arith.Arith.
@@ -150,8 +164,7 @@ Record NeuralOperator := {
   (* Iterative kernel integration step *)
   KernelIntegration : forall t : nat, (D -> R^d) -> (D -> R^d); (* Mapping each hidden representation iteratively *)
   
-  (* Non-linearity function *)
-  Nonlinearity : R -> R;
+ 
   
   (* Projection step *)
   Projection : (D' -> R^d) -> (D' -> R^d');
