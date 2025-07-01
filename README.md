@@ -1,1 +1,1 @@
-# Neural-Operator-Synthesis
+# Neural Operators in Rocq

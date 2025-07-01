@@ -40,6 +40,17 @@ Qed.
 About is_derive. (* is_derivative(f x f') *)
 About continuity. (* continuity(f) *)
 
+Require Import Coq.Vectors.Vector.
+
+Record Manifold := {
+  atlas : ... ; (* charts and transition functions *)
+  smoothness : ...
+}.
+
+
+Record DifferentialForm {n : nat} (M : Manifold) := {
+  form : forall (x : M), Alt n (TangentSpace x)
+}.
 
 
 
